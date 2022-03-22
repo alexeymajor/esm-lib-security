@@ -17,7 +17,6 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 @Configuration
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private static final String userHeader = "X-Auth-User";
     private final ObjectMapper objectMapper;
 
     @SneakyThrows
@@ -42,6 +41,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .requestCache().disable()
+                .headers().frameOptions().sameOrigin()
+                .and()
                 .httpBasic().disable()
                 .rememberMe().disable()
                 .formLogin().disable()
