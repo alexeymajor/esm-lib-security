@@ -94,7 +94,7 @@ public class AdminService {
     }
 
     public Sid findSid(String sid) {
-        if (sid.startsWith("ROLE_")) {
+        if (sid.startsWith("ROLE_") || sid.startsWith("SCOPE_")) {
             return new GrantedAuthoritySid(sid);
         }
         return new PrincipalSid(sid);
