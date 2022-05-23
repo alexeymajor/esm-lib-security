@@ -357,7 +357,8 @@ public class AdminService {
             SecurityContextHolder.getContext().setAuthentication(new TrustAuthenticationToken(systemUser));
         }
 
-        val aclTypes = typeAlias.stream().filter(AclAlias::getWithHierarchy)
+        val aclTypes = typeAlias.stream()
+                .filter(AclAlias::getWithHierarchy)
                 .map(AclAlias::getAclHierarchyType)
                 .collect(Collectors.toSet());
 

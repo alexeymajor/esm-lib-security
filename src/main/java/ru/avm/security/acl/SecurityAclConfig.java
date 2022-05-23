@@ -21,6 +21,7 @@ import org.springframework.security.config.annotation.method.configuration.Globa
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import ru.avm.common.CompaniesProxy;
 import ru.avm.security.acl.admin.AdminService;
+import ru.avm.security.acl.admin.UpdateHierarchyListener;
 
 import javax.sql.DataSource;
 
@@ -45,6 +46,11 @@ public class SecurityAclConfig extends GlobalMethodSecurityConfiguration {
     @Bean
     public AdminService adminService() {
         return new AdminService(aclService(), rabbitTemplate, companiesProxy, aclPermissionEvaluator());
+    }
+
+    @Bean
+    public UpdateHierarchyListener updateHierarchyListener() {
+        return new UpdateHierarchyListener(adminService());
     }
 
     @Bean

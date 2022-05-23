@@ -18,7 +18,7 @@ public class UpdateHierarchyListener {
 
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(name = "companies-hierarchy-update_store-service"),
+                    value = @Queue(name = "#{'companies-hierarchy-update_' + '${spring.application.name}'}"),
                     exchange = @Exchange(name = "amq.topic", type = ExchangeTypes.TOPIC, declare = Exchange.FALSE),
                     key = {"companies.create", "companies.*.update"}),
             errorHandler = "rabbitErrorHandler"
