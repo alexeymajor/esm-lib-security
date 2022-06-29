@@ -39,6 +39,7 @@ public class AdminService {
     private final RabbitTemplate rabbitTemplate;
 
     private final CompaniesProxy companiesProxy;
+    private final AuthoritiesProxy authoritiesProxy;
 
     @Getter
     private final AclPermissionEvaluator aclPermissionEvaluator;
@@ -167,6 +168,7 @@ public class AdminService {
         aclService.updateAcl(acl);
     }
 
+    @SuppressWarnings("unused")
     public void deleteAce(Serializable entity, Sid sid, Permission permission) {
         val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
         for (int i = acl.getEntries().size() - 1; i >= 0; i--) {
@@ -311,7 +313,7 @@ public class AdminService {
         }
     }
 
-    public List<PrincipalSid> getSidsWithPermission(ObjectIdentity identity, Permission permission) {
+    public Collection<String> getSidsWithPermission(ObjectIdentity identity, Permission permission) {
         val acl = aclService.readAclById(identity);
         val list = acl.getEntries().stream()
                 .filter(ace -> ace.getPermission().equals(permission))
@@ -321,8 +323,18 @@ public class AdminService {
         if (parent != null) {
             fill(parent, permission, list);
         }
-        return list.stream().filter(sid -> sid instanceof PrincipalSid).map(sid -> (PrincipalSid) sid)
-                .distinct().collect(Collectors.toList());
+
+        val principals = list.stream().filter(sid -> sid instanceof GrantedAuthoritySid)
+                .map(sid -> ((GrantedAuthoritySid) sid).getGrantedAuthority())
+                .map(authoritiesProxy::principalsByAuthority)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+
+        principals.addAll(list.stream().filter(sid -> sid instanceof PrincipalSid)
+                .map(sid -> ((PrincipalSid) sid).getPrincipal())
+                .collect(Collectors.toSet()));
+
+        return principals;
     }
 
     private MutableAcl getAclNoParentCreate(String type, Serializable id) {

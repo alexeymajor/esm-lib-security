@@ -21,6 +21,7 @@ import org.springframework.security.config.annotation.method.configuration.Globa
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import ru.avm.common.CompaniesProxy;
 import ru.avm.security.acl.admin.AdminService;
+import ru.avm.security.acl.admin.AuthoritiesProxy;
 import ru.avm.security.acl.admin.UpdateHierarchyListener;
 
 import javax.sql.DataSource;
@@ -33,8 +34,9 @@ public class SecurityAclConfig extends GlobalMethodSecurityConfiguration {
 
     @Value("${spring.application.name}")
     private String applicationName;
-
     private final CompaniesProxy companiesProxy;
+
+    private final AuthoritiesProxy authoritiesProxy;
     private final RabbitTemplate rabbitTemplate;
     private final DataSource dataSource;
     private static final String ACL_CACHE_NAME_SUFFIX = "AclCache";
@@ -45,7 +47,7 @@ public class SecurityAclConfig extends GlobalMethodSecurityConfiguration {
 
     @Bean
     public AdminService adminService() {
-        return new AdminService(aclService(), rabbitTemplate, companiesProxy, aclPermissionEvaluator());
+        return new AdminService(aclService(), rabbitTemplate, companiesProxy, authoritiesProxy, aclPermissionEvaluator());
     }
 
     @Bean
