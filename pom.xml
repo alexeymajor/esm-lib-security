@@ -5,16 +5,17 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.8</version>
+        <version>2.6.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ru.avm</groupId>
     <artifactId>security</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <name>security</name>
     <description>security</description>
     <properties>
         <java.version>11</java.version>
+        <avm.common>0.0.2</avm.common>
     </properties>
     <dependencies>
         <dependency>
@@ -40,7 +41,7 @@
         <dependency>
             <groupId>ru.avm</groupId>
             <artifactId>common</artifactId>
-            <version>0.0.1</version>
+            <version>${avm.common}</version>
         </dependency>
 
         <dependency>
