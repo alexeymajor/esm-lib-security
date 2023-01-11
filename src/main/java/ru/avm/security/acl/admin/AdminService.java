@@ -107,13 +107,11 @@ public class AdminService {
     }
 
     private MutableAcl aclOf(ObjectIdentity identity) {
-        MutableAcl acl;
         try {
-            acl = (MutableAcl) aclService.readAclById(identity);
+            return (MutableAcl) aclService.readAclById(identity);
         } catch (NotFoundException e) {
-            acl = aclService.createAcl(identity);
+            return aclService.createAcl(identity);
         }
-        return acl;
     }
 
     private MutableAcl getAcl(ObjectIdentity identity) {
