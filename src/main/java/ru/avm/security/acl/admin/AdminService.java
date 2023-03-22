@@ -369,13 +369,19 @@ public class AdminService {
 
         val aclTypes = typeAlias.stream()
                 .filter(AclAlias::getWithHierarchy)
-                .map(AclAlias::getAclHierarchyType)
+//                .map(AclAlias::getAclHierarchyType)
                 .collect(Collectors.toSet());
 
         companiesProxy.findAll().forEach(company ->
-                aclTypes.forEach(aclType ->
-                        updateParent(aclType, company.getId(),
-                                Optional.ofNullable(company.getParentId()).orElse(0L))));
+                aclTypes.forEach(aclType -> {
+                    try {
+                        aclType.getOnUpdate().accept(company);
+                    } catch (Exception e) {
+                        log.warn("update company exception ", e);
+                    }
+                    updateParent(aclType.getAclHierarchyType(), company.getId(),
+                            Optional.ofNullable(company.getParentId()).orElse(0L));
+                }));
     }
 
 }

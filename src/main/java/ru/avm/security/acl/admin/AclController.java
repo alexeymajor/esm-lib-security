@@ -11,6 +11,7 @@ import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import ru.avm.common.dto.CompanyDto;
 import ru.avm.security.acl.admin.dto.AccessDto;
 import ru.avm.security.acl.admin.dto.SidAccessDto;
 
@@ -25,17 +26,23 @@ public interface AclController {
 
     AdminService getAdminService();
 
+    default void onHierarchyUpdate(CompanyDto company) {
+    }
+
     default Boolean getWithHierarchy() {
         return !Objects.equals(getAclHierarchyType(), getAclType());
     }
+
     default String getAclHierarchyType() {
         return getAclType();
     }
+
     @Autowired
     default void register(AdminService adminService) {
         val types = AclAlias.builder()
                 .withHierarchy(getWithHierarchy())
                 .aclHierarchyType(getAclHierarchyType())
+                .onUpdate(this::onHierarchyUpdate)
                 .aclType(getAclType()).build();
         adminService.registerAlias(types);
     }
