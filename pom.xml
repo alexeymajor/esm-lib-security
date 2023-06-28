@@ -10,12 +10,12 @@
     </parent>
     <groupId>ru.avm</groupId>
     <artifactId>security</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <name>security</name>
     <description>security</description>
     <properties>
         <java.version>11</java.version>
-        <avm.common>1.0.5</avm.common>
+        <avm.common>1.0.6</avm.common>
     </properties>
     <dependencies>
         <dependency>

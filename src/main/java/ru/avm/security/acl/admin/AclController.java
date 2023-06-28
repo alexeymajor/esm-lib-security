@@ -57,9 +57,7 @@ public interface AclController {
         val isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
 
-        if (isAdmin) {
-            return;
-        }
+        if (isAdmin) return;
 
         val aclAccess = getAdminService().getAclPermissionEvaluator()
                 .hasPermission(authentication, targetId, getAclType(), BasePermission.ADMINISTRATION);
