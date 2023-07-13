@@ -67,13 +67,9 @@ public class AdminService {
     }
 
     public boolean checkPermission(Object domainObject, Object permission) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
-        }
-
-        return aclPermissionEvaluator.hasPermission(authentication, domainObject, permission);
-
+        val auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return false;
+        return aclPermissionEvaluator.hasPermission(auth, domainObject, permission);
     }
 
     @SneakyThrows
