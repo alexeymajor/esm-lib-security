@@ -1,6 +1,11 @@
-package ru.avm.security;
+package ru.avm.lib.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.codec.binary.Base64;
@@ -8,14 +13,10 @@ import org.apache.logging.log4j.util.Strings;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
-import ru.avm.common.dto.AuthUserDto;
+import ru.avm.lib.common.dto.AuthUserDto;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class TrustAuthenticationFilter extends GenericFilterBean {
 
@@ -30,11 +31,12 @@ public class TrustAuthenticationFilter extends GenericFilterBean {
     private void internalFilter(HttpServletRequest request) {
         val userBase64String = request.getHeader(userHeader);
 
-        if (Strings.isBlank(userBase64String)) {
+        if (Strings.isBlank(userBase64String) || userBase64String.length() > 1024) {
             return;
         }
 
-        val userString = Base64.decodeBase64(userBase64String);
+        val userBytes = Base64.decodeBase64(userBase64String);
+        val userString = new String(userBytes, StandardCharsets.UTF_8);
         val user = objectMapper.readValue(userString, AuthUserDto.class);
         val authentication = new TrustAuthenticationToken(user);
 

@@ -1,4 +1,4 @@
-package ru.avm.security.acl;
+package ru.avm.lib.security.acl;
 
 import lombok.Getter;
 import lombok.Setter;

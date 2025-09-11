@@ -1,4 +1,4 @@
-package ru.avm.security.acl;
+package ru.avm.lib.security.acl;
 
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.model.Permission;

@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin.dto;
+package ru.avm.lib.security.acl.admin.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

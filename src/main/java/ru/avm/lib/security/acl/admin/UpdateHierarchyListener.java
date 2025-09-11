@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.ExchangeTypes;
@@ -7,7 +7,7 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import ru.avm.common.dto.CompanyDto;
+import ru.avm.lib.common.dto.CompanyDto;
 
 @RequiredArgsConstructor
 

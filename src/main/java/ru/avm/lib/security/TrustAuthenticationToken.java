@@ -1,13 +1,12 @@
-package ru.avm.security;
+package ru.avm.lib.security;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import ru.avm.common.dto.AuthUserDto;
+import ru.avm.lib.common.dto.AuthUserDto;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 public class TrustAuthenticationToken implements Authentication {
@@ -21,9 +20,7 @@ public class TrustAuthenticationToken implements Authentication {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return principal.getAuthorities().stream()
-                .map(authorityDto -> (GrantedAuthority) authorityDto::getAuthority)
-                .collect(Collectors.toList());
+        return principal.authorities();
     }
 
     @Override
@@ -48,6 +45,6 @@ public class TrustAuthenticationToken implements Authentication {
 
     @Override
     public String getName() {
-        return principal.getSid();
+        return principal.sid();
     }
 }

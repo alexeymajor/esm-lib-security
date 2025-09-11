@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

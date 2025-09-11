@@ -1,4 +1,4 @@
-package ru.avm.security;
+package ru.avm.lib.security;
 
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;

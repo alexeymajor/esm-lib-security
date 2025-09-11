@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +16,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
-import ru.avm.common.CompaniesProxy;
-import ru.avm.common.dto.AuthUserDto;
-import ru.avm.common.dto.AuthorityDto;
-import ru.avm.security.TrustAuthenticationToken;
-import ru.avm.security.acl.SpecialPermission;
-import ru.avm.security.acl.admin.dto.AccessDto;
+import ru.avm.lib.common.CompaniesProxy;
+import ru.avm.lib.common.dto.AuthUserDto;
+import ru.avm.lib.common.dto.AuthorityDto;
+import ru.avm.lib.security.TrustAuthenticationToken;
+import ru.avm.lib.security.acl.SpecialPermission;
+import ru.avm.lib.security.acl.admin.dto.AccessDto;
 
 import java.io.Serializable;
 import java.util.*;
@@ -299,7 +299,7 @@ public class AdminService {
         val sids = acl.getEntries().stream()
                 .filter(ace -> ace.getPermission().equals(permission))
                 .map(AccessControlEntry::getSid)
-                .collect(Collectors.toList());
+                .toList();
         list.addAll(sids);
         val parent = acl.getParentAcl();
         if (parent != null) {
@@ -375,8 +375,8 @@ public class AdminService {
                     } catch (Exception e) {
                         log.warn("update company exception ", e);
                     }
-                    updateParent(aclType.getAclHierarchyType(), company.getId(),
-                            Optional.ofNullable(company.getParentId()).orElse(0L));
+                    updateParent(aclType.getAclHierarchyType(), company.id(),
+                            Optional.ofNullable(company.parentId()).orElse(0L));
                 }));
     }
 

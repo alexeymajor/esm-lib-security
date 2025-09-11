@@ -1,4 +1,4 @@
-package ru.avm.security.acl;
+package ru.avm.lib.security.acl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -16,21 +16,20 @@ import org.springframework.security.acls.jdbc.JdbcMutableAclService;
 import org.springframework.security.acls.jdbc.LookupStrategy;
 import org.springframework.security.acls.model.AclCache;
 import org.springframework.security.acls.model.PermissionGrantingStrategy;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
-import org.springframework.security.config.annotation.method.configuration.GlobalMethodSecurityConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import ru.avm.common.CompaniesProxy;
-import ru.avm.security.acl.admin.AdminService;
-import ru.avm.security.acl.admin.AuthoritiesProxy;
-import ru.avm.security.acl.admin.UpdateHierarchyListener;
+import ru.avm.lib.common.CompaniesProxy;
+import ru.avm.lib.security.acl.admin.AdminService;
+import ru.avm.lib.security.acl.admin.AuthoritiesProxy;
+import ru.avm.lib.security.acl.admin.UpdateHierarchyListener;
 
 import javax.sql.DataSource;
 
 @RequiredArgsConstructor
 
 @Configuration
-@EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
-public class SecurityAclConfig extends GlobalMethodSecurityConfiguration {
+@EnableMethodSecurity
+public class SecurityAclConfig {
 
     @Value("${spring.application.name}")
     private String applicationName;

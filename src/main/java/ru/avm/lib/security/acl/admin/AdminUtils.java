@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.security.acls.domain.BasePermission;
@@ -6,9 +6,9 @@ import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Sid;
-import ru.avm.security.acl.SpecialPermission;
-import ru.avm.security.acl.admin.dto.AccessDto;
-import ru.avm.security.acl.admin.dto.SidAccessDto;
+import ru.avm.lib.security.acl.SpecialPermission;
+import ru.avm.lib.security.acl.admin.dto.AccessDto;
+import ru.avm.lib.security.acl.admin.dto.SidAccessDto;
 
 import java.util.List;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import lombok.SneakyThrows;
 import lombok.val;
@@ -11,9 +11,9 @@ import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import ru.avm.common.dto.CompanyDto;
-import ru.avm.security.acl.admin.dto.AccessDto;
-import ru.avm.security.acl.admin.dto.SidAccessDto;
+import ru.avm.lib.common.dto.CompanyDto;
+import ru.avm.lib.security.acl.admin.dto.AccessDto;
+import ru.avm.lib.security.acl.admin.dto.SidAccessDto;
 
 import java.util.Collections;
 import java.util.List;

@@ -1,8 +1,8 @@
-package ru.avm.security.acl.admin;
+package ru.avm.lib.security.acl.admin;
 
 import lombok.Builder;
 import lombok.Value;
-import ru.avm.common.dto.CompanyDto;
+import ru.avm.lib.common.dto.CompanyDto;
 
 import java.util.function.Consumer;
 
