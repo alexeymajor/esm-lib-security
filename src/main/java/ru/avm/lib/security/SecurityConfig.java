@@ -40,7 +40,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain configure(HttpSecurity http, HandlerMappingIntrospector handlerMappingIntrospector) throws Exception {
 
-
         val mvcRequestMatcherBuilder = new MvcRequestMatcher.Builder(handlerMappingIntrospector);
 
         http.authorizeHttpRequests(am -> am

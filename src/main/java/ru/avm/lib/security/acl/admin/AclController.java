@@ -59,7 +59,7 @@ public interface AclController {
 
         if (isAdmin) return;
 
-        val aclAccess = getAdminService().getAclPermissionEvaluator()
+        val aclAccess = getAdminService().getPermissionEvaluator()
                 .hasPermission(authentication, targetId, getAclType(), BasePermission.ADMINISTRATION);
         if (!aclAccess) {
             throw new AccessDeniedException("access denied");

@@ -6,7 +6,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.security.acls.AclPermissionEvaluator;
+import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import ru.avm.lib.common.CompaniesProxy;
 import ru.avm.lib.common.dto.AuthUserDto;
-import ru.avm.lib.common.dto.AuthorityDto;
 import ru.avm.lib.security.TrustAuthenticationToken;
 import ru.avm.lib.security.acl.SpecialPermission;
 import ru.avm.lib.security.acl.admin.dto.AccessDto;
@@ -42,7 +41,7 @@ public class AdminService {
     private final AuthoritiesProxy authoritiesProxy;
 
     @Getter
-    private final AclPermissionEvaluator aclPermissionEvaluator;
+    private final PermissionEvaluator permissionEvaluator;
 
     @Getter
     private final Permission specialPermission = SpecialPermission.SPECIAL;
@@ -57,19 +56,19 @@ public class AdminService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         return AccessDto.builder()
-                .create(aclPermissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.CREATE))
-                .read(aclPermissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.READ))
-                .write(aclPermissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.WRITE))
-                .delete(aclPermissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.DELETE))
-                .special(aclPermissionEvaluator.hasPermission(authentication, targetId, type, SpecialPermission.SPECIAL))
-                .administration(aclPermissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.ADMINISTRATION))
+                .create(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.CREATE))
+                .read(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.READ))
+                .write(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.WRITE))
+                .delete(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.DELETE))
+                .special(permissionEvaluator.hasPermission(authentication, targetId, type, SpecialPermission.SPECIAL))
+                .administration(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.ADMINISTRATION))
                 .build();
     }
 
     public boolean checkPermission(Object domainObject, Object permission) {
         val auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return false;
-        return aclPermissionEvaluator.hasPermission(auth, domainObject, permission);
+        return permissionEvaluator.hasPermission(auth, domainObject, permission);
     }
 
     @SneakyThrows
@@ -357,7 +356,7 @@ public class AdminService {
             val systemUser = AuthUserDto.builder()
                     .id(0L)
                     .sid("system")
-                    .authorities(Set.of(AuthorityDto.builder().authority("ROLE_ADMIN").build()))
+                    .authorities(Set.of("ROLE_ADMIN"))
                     .build();
 
             SecurityContextHolder.getContext().setAuthentication(new TrustAuthenticationToken(systemUser));

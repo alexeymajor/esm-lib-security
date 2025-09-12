@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import ru.avm.lib.common.dto.AuthUserDto;
+import ru.avm.lib.common.dto.AuthorityDto;
 
 import java.util.Collection;
 
@@ -20,7 +21,7 @@ public class TrustAuthenticationToken implements Authentication {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return principal.authorities();
+        return principal.authorities().stream().map(AuthorityDto::new).toList();
     }
 
     @Override

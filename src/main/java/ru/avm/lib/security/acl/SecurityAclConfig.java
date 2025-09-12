@@ -9,6 +9,9 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.PermissionEvaluator;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.acls.AclPermissionEvaluator;
 import org.springframework.security.acls.domain.*;
 import org.springframework.security.acls.jdbc.BasicLookupStrategy;
@@ -45,18 +48,30 @@ public class SecurityAclConfig {
     }
 
     @Bean
-    public AdminService adminService() {
-        return new AdminService(aclService(), rabbitTemplate, companiesProxy, authoritiesProxy, aclPermissionEvaluator());
+    public AdminService adminService(JdbcMutableAclService aclService, PermissionEvaluator permissionEvaluator) {
+        return new AdminService(
+                aclService,
+                rabbitTemplate,
+                companiesProxy,
+                authoritiesProxy,
+                permissionEvaluator);
     }
 
     @Bean
-    public UpdateHierarchyListener updateHierarchyListener() {
-        return new UpdateHierarchyListener(adminService());
+    public UpdateHierarchyListener updateHierarchyListener(AdminService adminService) {
+        return new UpdateHierarchyListener(adminService);
     }
 
     @Bean
-    public AclPermissionEvaluator aclPermissionEvaluator() {
+    public PermissionEvaluator permissionEvaluator() {
         return new AclPermissionEvaluator(aclService());
+    }
+
+    @Bean
+    public MethodSecurityExpressionHandler expressionHandler(PermissionEvaluator permissionEvaluator) {
+        var expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setPermissionEvaluator(permissionEvaluator);
+        return expressionHandler;
     }
 
     @Bean
