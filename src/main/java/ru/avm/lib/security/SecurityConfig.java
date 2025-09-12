@@ -3,7 +3,6 @@ package ru.avm.lib.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
-import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 @RequiredArgsConstructor
 
@@ -38,20 +35,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain configure(HttpSecurity http, HandlerMappingIntrospector handlerMappingIntrospector) throws Exception {
-
-        val mvcRequestMatcherBuilder = new MvcRequestMatcher.Builder(handlerMappingIntrospector);
+    public SecurityFilterChain configure(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(am -> am
-                        .requestMatchers(mvcRequestMatcherBuilder.pattern("/actuator/**"))
-                        .access(new WebExpressionAuthorizationManager("hasIpAddress('127.0.0.1')"))
-                        .anyRequest()
-                        .permitAll());
-        http.sessionManagement(configurer ->  configurer
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .requestMatchers("/actuator/**")
+                .access(new WebExpressionAuthorizationManager("hasIpAddress('127.0.0.1')"))
+                .anyRequest()
+                .permitAll());
+        http.sessionManagement(configurer -> configurer
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.requestCache(RequestCacheConfigurer::disable);
         http.headers(httpSecurityHeadersConfigurer ->
-                        httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+                httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
         http.httpBasic(AbstractHttpConfigurer::disable);
         http.rememberMe(AbstractHttpConfigurer::disable);
         http.formLogin(AbstractHttpConfigurer::disable);
