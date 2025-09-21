@@ -1,10 +1,7 @@
 package ru.avm.lib.security.acl.admin.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @AllArgsConstructor
@@ -17,5 +14,6 @@ public class AccessDto {
     boolean write;
     boolean delete;
     boolean special;
+    @With
     boolean administration;
 }
