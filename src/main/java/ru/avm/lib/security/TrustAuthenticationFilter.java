@@ -31,7 +31,7 @@ public class TrustAuthenticationFilter extends GenericFilterBean {
     private void internalFilter(HttpServletRequest request) {
         val userBase64String = request.getHeader(userHeader);
 
-        if (Strings.isBlank(userBase64String) || userBase64String.length() > 1024) {
+        if (Strings.isBlank(userBase64String) || userBase64String.length() > 10240) {
             return;
         }
 
