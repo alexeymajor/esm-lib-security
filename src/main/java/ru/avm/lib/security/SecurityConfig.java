@@ -37,11 +37,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
 
+        http.csrf(AbstractHttpConfigurer::disable);
+
+        http.headers(headers -> headers
+                .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+        );
+
         http.authorizeHttpRequests(am -> am
                 .requestMatchers("/actuator/**")
                 .access(new WebExpressionAuthorizationManager("hasIpAddress('127.0.0.1')"))
-                .anyRequest()
-                .permitAll());
+                .anyRequest().permitAll());
         http.sessionManagement(configurer -> configurer
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.requestCache(RequestCacheConfigurer::disable);
@@ -53,7 +58,6 @@ public class SecurityConfig {
         http.logout(AbstractHttpConfigurer::disable);
         http.anonymous(AbstractHttpConfigurer::disable);
         http.addFilterBefore(trustAuthenticationFilter(), AnonymousAuthenticationFilter.class);
-        http.csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
