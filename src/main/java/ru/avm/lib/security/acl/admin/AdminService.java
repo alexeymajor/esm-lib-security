@@ -40,6 +40,8 @@ public class AdminService {
     private final CompaniesProxy companiesProxy;
     private final AuthoritiesProxy authoritiesProxy;
 
+    private final AuthUserDto serviceUser;
+
     @Getter
     private final PermissionEvaluator permissionEvaluator;
 
@@ -50,6 +52,16 @@ public class AdminService {
 
     public void registerAlias(AclAlias type) {
         typeAlias.add(type);
+    }
+
+    public void authServiceUser() {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            throw new IllegalStateException("already authenticated");
+        }
+        val authentication = new TrustAuthenticationToken(serviceUser);
+        val securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     public AccessDto getPermissions(String type, Serializable targetId) {

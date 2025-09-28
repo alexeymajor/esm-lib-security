@@ -22,6 +22,7 @@ import org.springframework.security.acls.model.PermissionGrantingStrategy;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import ru.avm.lib.common.CompaniesProxy;
+import ru.avm.lib.common.dto.AuthUserDto;
 import ru.avm.lib.security.acl.admin.AdminService;
 import ru.avm.lib.security.acl.admin.AuthoritiesProxy;
 import ru.avm.lib.security.acl.admin.UpdateHierarchyListener;
@@ -41,6 +42,7 @@ public class SecurityAclConfig {
     private final AuthoritiesProxy authoritiesProxy;
     private final RabbitTemplate rabbitTemplate;
     private final DataSource dataSource;
+    private final AuthUserDto serviceUser;
     private static final String ACL_CACHE_NAME_SUFFIX = "AclCache";
 
     public String aclCacheName() {
@@ -54,6 +56,7 @@ public class SecurityAclConfig {
                 rabbitTemplate,
                 companiesProxy,
                 authoritiesProxy,
+                serviceUser,
                 permissionEvaluator);
     }
 
