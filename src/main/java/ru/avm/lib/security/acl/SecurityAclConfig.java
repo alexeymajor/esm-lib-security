@@ -56,7 +56,7 @@ public class SecurityAclConfig {
                 rabbitTemplate,
                 companiesProxy,
                 authoritiesProxy,
-                serviceUser,
+                serviceUser.toBuilder().authority("ROLE_ADMIN").build(),
                 permissionEvaluator);
     }
 

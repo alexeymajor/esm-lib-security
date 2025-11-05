@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.access.PermissionEvaluator;
-import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PrincipalSid;
@@ -19,14 +18,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import ru.avm.lib.common.CompaniesProxy;
 import ru.avm.lib.common.dto.AuthUserDto;
 import ru.avm.lib.security.TrustAuthenticationToken;
-import ru.avm.lib.security.acl.SpecialPermission;
 import ru.avm.lib.security.acl.admin.dto.AccessDto;
+import ru.avm.lib.security.acl.admin.dto.AclRoot;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import static org.springframework.security.acls.domain.BasePermission.*;
+import static ru.avm.lib.security.acl.SpecialPermission.SPECIAL;
 
 @RequiredArgsConstructor
 
@@ -46,7 +48,7 @@ public class AdminService {
     private final PermissionEvaluator permissionEvaluator;
 
     @Getter
-    private final Permission specialPermission = SpecialPermission.SPECIAL;
+    private final Permission specialPermission = SPECIAL;
 
     private static final Set<AclAlias> typeAlias = ConcurrentHashMap.newKeySet();
 
@@ -68,12 +70,12 @@ public class AdminService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         return AccessDto.builder()
-                .create(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.CREATE))
-                .read(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.READ))
-                .write(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.WRITE))
-                .delete(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.DELETE))
-                .special(permissionEvaluator.hasPermission(authentication, targetId, type, SpecialPermission.SPECIAL))
-                .administration(permissionEvaluator.hasPermission(authentication, targetId, type, BasePermission.ADMINISTRATION))
+                .create(permissionEvaluator.hasPermission(authentication, targetId, type, CREATE))
+                .read(permissionEvaluator.hasPermission(authentication, targetId, type, READ))
+                .write(permissionEvaluator.hasPermission(authentication, targetId, type, WRITE))
+                .delete(permissionEvaluator.hasPermission(authentication, targetId, type, DELETE))
+                .special(permissionEvaluator.hasPermission(authentication, targetId, type, SPECIAL))
+                .administration(permissionEvaluator.hasPermission(authentication, targetId, type, ADMINISTRATION))
                 .build();
     }
 
@@ -92,6 +94,7 @@ public class AdminService {
         return new PrincipalSid(authentication.getName());
     }
 
+    @Transactional
     public Map<Sid, AccessDto> getAces(@PathVariable String type, @PathVariable Serializable identifier) {
         val oi = new ObjectIdentityImpl(type, identifier);
         val acl = aclService.readAclById(oi);
@@ -101,16 +104,11 @@ public class AdminService {
                 (map1, map2) -> map2.forEach((sid, accessDto) -> map1.merge(sid, accessDto, AdminUtils::mergeAccess)));
     }
 
-    public Sid findSid(String sid) {
+    public Sid makeSid(String sid) {
         if (sid.startsWith("ROLE_") || sid.startsWith("SCOPE_")) {
             return new GrantedAuthoritySid(sid);
         }
         return new PrincipalSid(sid);
-    }
-
-    private MutableAcl getAcl(String type, Serializable entity) {
-        val identity = new ObjectIdentityImpl(type, entity);
-        return getAcl(identity);
     }
 
     private MutableAcl aclOf(ObjectIdentity identity) {
@@ -121,7 +119,9 @@ public class AdminService {
         }
     }
 
-    private MutableAcl getAcl(ObjectIdentity identity) {
+    private MutableAcl makeAcl(String type, Serializable entity, String parentType, Long parentId) {
+        val identity = new ObjectIdentityImpl(type, entity);
+
         MutableAcl acl;
         try {
             acl = (MutableAcl) aclService.readAclById(identity);
@@ -129,30 +129,30 @@ public class AdminService {
             acl = aclService.createAcl(identity);
         }
 
-        if (!Long.valueOf(0).equals(identity.getIdentifier()) && acl.getParentAcl() == null) {
-            val parentIdentity = new ObjectIdentityImpl(identity.getType(), 0);
-            Acl parentAcl;
-            try {
-                parentAcl = aclService.readAclById(parentIdentity);
-            } catch (NotFoundException e1) {
-                parentAcl = aclService.createAcl(parentIdentity);
-            }
-            acl.setParent(parentAcl);
+        val parentIdentity = new ObjectIdentityImpl(parentType, parentId);
+        Acl parentAcl;
+        try {
+            parentAcl = aclService.readAclById(parentIdentity);
+        } catch (NotFoundException e1) {
+            parentAcl = aclService.createAcl(parentIdentity);
         }
+        acl.setParent(parentAcl);
 
         return acl;
     }
 
-    @SuppressWarnings("unused")
+    @Transactional
     public void createAcl(Serializable entity, Serializable parent, Consumer<MutableAcl> aclConsumer) {
         createAcl(new ObjectIdentityImpl(entity), new ObjectIdentityImpl(parent), aclConsumer);
     }
 
+    @Transactional
     public void createAcl(Serializable entity, Serializable parent) {
         createAcl(new ObjectIdentityImpl(entity), new ObjectIdentityImpl(parent), acl -> {
         });
     }
 
+    @Transactional
     public void createAcl(ObjectIdentity entity, ObjectIdentity parent, Consumer<MutableAcl> aclConsumer) {
         val acl = aclOf(entity);
         val parentAcl = aclOf(parent);
@@ -167,24 +167,14 @@ public class AdminService {
         }
     }
 
+    @Transactional
     public void editAcl(Serializable entity, Consumer<MutableAcl> aclConsumer) {
         val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
         aclConsumer.accept(acl);
         aclService.updateAcl(acl);
     }
 
-    @SuppressWarnings("unused")
-    public void deleteAce(Serializable entity, Sid sid, Permission permission) {
-        val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
-        for (int i = acl.getEntries().size() - 1; i >= 0; i--) {
-            val ace = acl.getEntries().get(i);
-            if (ace.getSid().equals(sid) && permission.equals(ace.getPermission())) {
-                acl.deleteAce(i);
-            }
-        }
-        aclService.updateAcl(acl);
-    }
-
+    @Transactional
     public void updateAcl(Serializable entity) {
         val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
         val parent = aclService.readAclById(new ObjectIdentityImpl(entity.getClass().getName(), 0L));
@@ -194,6 +184,7 @@ public class AdminService {
         }
     }
 
+    @Transactional
     public void updateAcl(Serializable entity, Serializable parentEntity, Consumer<MutableAcl> aclConsumer) {
         val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
         val parent = aclService.readAclById(new ObjectIdentityImpl(parentEntity));
@@ -204,106 +195,80 @@ public class AdminService {
         aclService.updateAcl(acl);
     }
 
+    @Transactional
     public void updateAcl(Serializable entity, Serializable parentEntity) {
         val acl = (MutableAcl) aclService.readAclById(new ObjectIdentityImpl(entity));
-        val parent = aclService.readAclById(new ObjectIdentityImpl(parentEntity));
-        if (acl.getParentAcl() == null || !acl.getParentAcl().equals(parent)) {
-            acl.setParent(parent);
-            aclService.updateAcl(acl);
+        if (parentEntity != null) {
+            val parent = aclService.readAclById(new ObjectIdentityImpl(parentEntity));
+            if (acl.getParentAcl() == null || !acl.getParentAcl().equals(parent)) {
+                acl.setParent(parent);
+                aclService.updateAcl(acl);
+            }
         }
     }
 
     @Transactional
-    public void updatePermissions(String sid, String type, Serializable targetId, AccessDto permissions) {
-        val sidObject = findSid(sid);
+    public void updatePermissions(String sid, String type, Long id, AccessDto permissions) {
+        updatePermissions(sid, type, id, AclRoot.class.getName(), 0L, permissions);
+    }
 
-        val acl = getAcl(type, targetId);
+    @Transactional
+    public void updatePermissions(String sid, String type, Long id, String parentType, Long parentId, AccessDto permissions) {
+        val sidObject = makeSid(sid);
 
+        val acl = makeAcl(type, id, parentType, parentId);
 
         val res = new AccessDto();
 
         for (int i = acl.getEntries().size() - 1; i >= 0; i--) {
-            if (acl.getEntries().get(i).getSid().equals(sidObject)) {
-                if (BasePermission.READ.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isRead()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setRead(true);
-                    continue;
-                }
-                if (BasePermission.CREATE.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isCreate()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setCreate(true);
-                    continue;
-                }
-                if (BasePermission.WRITE.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isWrite()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setWrite(true);
-                    continue;
-                }
-                if (BasePermission.DELETE.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isDelete()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setDelete(true);
-                    continue;
-                }
+            val ace = acl.getEntries().get(i);
+            if (!ace.getSid().equals(sidObject))
+                continue;
 
-                if (SpecialPermission.SPECIAL.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isSpecial()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setSpecial(true);
-                    continue;
-                }
-
-                if (BasePermission.ADMINISTRATION.equals(acl.getEntries().get(i).getPermission())) {
-                    if (!permissions.isAdministration()) {
-                        acl.deleteAce(i);
-                        continue;
-                    }
-                    res.setAdministration(true);
-                }
+            val permission = ace.getPermission();
+            if (READ.equals(permission)) {
+                if (!permissions.isRead()) acl.deleteAce(i);
+                else res.setRead(true);
+            } else if (CREATE.equals(permission)) {
+                if (!permissions.isCreate()) acl.deleteAce(i);
+                else res.setCreate(true);
+            } else if (WRITE.equals(permission)) {
+                if (!permissions.isWrite()) acl.deleteAce(i);
+                else res.setWrite(true);
+            } else if (DELETE.equals(permission)) {
+                if (!permissions.isDelete()) acl.deleteAce(i);
+                else res.setDelete(true);
+            } else if (SPECIAL.equals(permission)) {
+                if (!permissions.isSpecial()) acl.deleteAce(i);
+                else res.setSpecial(true);
+            } else if (ADMINISTRATION.equals(permission)) {
+                if (!permissions.isAdministration()) acl.deleteAce(i);
+                else res.setAdministration(true);
             }
         }
 
-        if (permissions.isRead() && !res.isRead()) {
-            acl.insertAce(acl.getEntries().size(), BasePermission.READ, sidObject, true);
+        if (permissions.isRead() != res.isRead()) {
+            acl.insertAce(acl.getEntries().size(), READ, sidObject, true);
         }
-
-        if (permissions.isCreate() && !res.isCreate()) {
-            acl.insertAce(acl.getEntries().size(), BasePermission.CREATE, sidObject, true);
+        if (permissions.isCreate() != res.isCreate()) {
+            acl.insertAce(acl.getEntries().size(), CREATE, sidObject, true);
         }
-
-        if (permissions.isWrite() && !res.isWrite()) {
-            acl.insertAce(acl.getEntries().size(), BasePermission.WRITE, sidObject, true);
+        if (permissions.isWrite() != res.isWrite()) {
+            acl.insertAce(acl.getEntries().size(), WRITE, sidObject, true);
         }
-
-        if (permissions.isDelete() && !res.isDelete()) {
-            acl.insertAce(acl.getEntries().size(), BasePermission.DELETE, sidObject, true);
+        if (permissions.isDelete() != res.isDelete()) {
+            acl.insertAce(acl.getEntries().size(), DELETE, sidObject, true);
         }
-
-        if (permissions.isSpecial() && !res.isSpecial()) {
-            acl.insertAce(acl.getEntries().size(), SpecialPermission.SPECIAL, sidObject, true);
+        if (permissions.isSpecial() != res.isSpecial()) {
+            acl.insertAce(acl.getEntries().size(), SPECIAL, sidObject, true);
         }
-
-        if (permissions.isAdministration() && !res.isAdministration()) {
-            acl.insertAce(acl.getEntries().size(), BasePermission.ADMINISTRATION, sidObject, true);
+        if (permissions.isAdministration() != res.isAdministration()) {
+            acl.insertAce(acl.getEntries().size(), ADMINISTRATION, sidObject, true);
         }
 
         aclService.updateAcl(acl);
 
-        rabbitTemplate.convertAndSend("sales.admin." + type + "." + targetId + "." + sid, permissions);
-
+        rabbitTemplate.convertAndSend("sales.admin." + type + "." + id + "." + sid, permissions);
     }
 
     private void fill(Acl acl, Permission permission, List<Sid> list) {
@@ -318,6 +283,7 @@ public class AdminService {
         }
     }
 
+    @Transactional
     public Collection<String> getSidsWithPermission(ObjectIdentity identity, Permission permission) {
         val acl = aclService.readAclById(identity);
         val list = acl.getEntries().stream()
@@ -349,9 +315,9 @@ public class AdminService {
         } catch (NotFoundException e) {
             return aclService.createAcl(identity);
         }
-
     }
 
+    @Transactional
     public void updateParent(String type, Long id, Long parentId) {
         val acl = getAclNoParentCreate(type, id);
         val parent = getAclNoParentCreate(type, parentId);
@@ -362,16 +328,9 @@ public class AdminService {
 
     @Transactional
     public void updateHierarchy() {
-
-        if (SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            val systemUser = AuthUserDto.builder()
-                    .id(0L)
-                    .sid("system")
-                    .authorities(Set.of("ROLE_ADMIN"))
-                    .build();
-
-            SecurityContextHolder.getContext().setAuthentication(new TrustAuthenticationToken(systemUser));
+        try {
+            authServiceUser();
+        } catch (Exception ignored) {
         }
 
         val aclTypes = typeAlias.stream()
@@ -386,8 +345,8 @@ public class AdminService {
                     } catch (Exception e) {
                         log.warn("update company exception ", e);
                     }
-                    updateParent(aclType.getAclHierarchyType(), company.id(),
-                            Optional.ofNullable(company.parentId()).orElse(0L));
+                    val parentId = Optional.ofNullable(company.parentId()).orElse(0L);
+                    updateParent(aclType.getAclHierarchyType(), company.id(), parentId);
                 }));
     }
 

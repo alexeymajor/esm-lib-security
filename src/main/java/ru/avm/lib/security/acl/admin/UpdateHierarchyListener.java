@@ -1,6 +1,7 @@
 package ru.avm.lib.security.acl.admin;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -11,6 +12,7 @@ import ru.avm.lib.common.dto.CompanyDto;
 
 @RequiredArgsConstructor
 
+@Slf4j
 @Component
 public class UpdateHierarchyListener {
 
@@ -24,7 +26,14 @@ public class UpdateHierarchyListener {
             errorHandler = "rabbitErrorHandler"
     )
     public void updateCmpHierarchyListener(@SuppressWarnings("unused") CompanyDto dto) {
-        adminService.updateHierarchy();
+        try {
+            log.warn("update cmp hierarchy");
+            adminService.updateHierarchy();
+            log.warn("update cmp hierarchy done");
+        } catch (Exception e) {
+            log.error("error update cmp hierarchy", e);
+            throw new RuntimeException(e);
+        }
     }
 
 

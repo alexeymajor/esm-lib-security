@@ -1,10 +1,10 @@
 package ru.avm.lib.security.acl.admin;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.acls.domain.BasePermission;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.NotFoundException;
@@ -19,10 +19,38 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
+
 @RequestMapping("default")
 public interface AclController {
 
     String getAclType();
+
+    default String chooseAclType(Long id) {
+        if (targetIsAclRoot(id)) return getParentAclType();
+        return getAclType();
+    }
+
+    default Long chooseAclId(Long id, HttpServletRequest request) {
+        if (targetIsAclRoot(id)) return getParentId(request);
+        return id;
+    }
+
+    default String getParentAclType() {
+        return getAclType();
+    }
+
+    default Integer getParentParameterIndex() {
+        return null;
+    }
+
+    @SneakyThrows
+    default Long getParentId(HttpServletRequest request) {
+        if (getParentParameterIndex() == null) return 0L;
+        val parts = request.getServletPath().split("/");
+        val parentParameterValue = parts[getParentParameterIndex()];
+        return Long.parseLong(parentParameterValue);
+    }
 
     AdminService getAdminService();
 
@@ -47,43 +75,50 @@ public interface AclController {
         adminService.registerAlias(types);
     }
 
-    private void checkAccess(Long targetId) {
+    private void checkAccess(Long id, HttpServletRequest request) {
         val authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated())
             throw new AccessDeniedException("access denied");
-        }
 
         val isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
 
         if (isAdmin) return;
 
+        val targetId = chooseAclId(id, request);
+        val targetType = chooseAclType(id);
+
         val aclAccess = getAdminService().getPermissionEvaluator()
-                .hasPermission(authentication, targetId, getAclType(), BasePermission.ADMINISTRATION);
-        if (!aclAccess) {
-            throw new AccessDeniedException("access denied");
-        }
+                .hasPermission(authentication, targetId, targetType, ADMINISTRATION);
+        if (!aclAccess) throw new AccessDeniedException("access denied");
+
     }
 
     @GetMapping("permissions")
-    default AccessDto permissions() {
-        return getAdminService().getPermissions(getAclType(), 0L);
+    default AccessDto permissions(HttpServletRequest request) {
+        val parentType = getParentAclType();
+        val parentId = getParentId(request);
+        return getAdminService().getPermissions(parentType, parentId);
     }
 
     @GetMapping("{id}/permissions")
-    default AccessDto permissions(@PathVariable Long id) {
-        return getAdminService().getPermissions(getAclType(), id);
+    default AccessDto permissions(@PathVariable Long id, HttpServletRequest request) {
+        if (id == 0L) {
+            return permissions(request);
+        }
+        return getAdminService().getPermissions(chooseAclType(id), id);
     }
 
     @SneakyThrows
     @GetMapping("{id}/acl")
-    default List<SidAccessDto> aclList(@PathVariable Long id) {
-
-        checkAccess(id);
-
+    default List<SidAccessDto> aclList(@PathVariable Long id, HttpServletRequest request) {
+        checkAccess(id, request);
         try {
-            return AdminUtils.convert(getAdminService().getAces(getAclType(), id));
+            val targetId = chooseAclId(id, request);
+            val targetType = chooseAclType(id);
+            val acesMap = getAdminService().getAces(targetType, targetId);
+            return AdminUtils.convert(acesMap);
         } catch (NotFoundException e) {
             return Collections.emptyList();
         }
@@ -91,41 +126,63 @@ public interface AclController {
 
     @SneakyThrows
     @GetMapping("acl")
-    default List<SidAccessDto> aclList() {
-        return aclList(0L);
+    default List<SidAccessDto> aclList(HttpServletRequest request) {
+        return aclList(0L, request);
     }
 
     @SneakyThrows
     @PutMapping("{id}/acl/{sid}")
-    default void updatePermissions(@PathVariable Long id, @PathVariable String sid, @RequestBody AccessDto accessDto) {
-        checkAccess(id);
-        getAdminService().updatePermissions(sid, getAclType(), id, accessDto);
+    default void updatePermissions(HttpServletRequest request, @PathVariable Long id, @PathVariable String sid, @RequestBody AccessDto permissions) {
+        if (targetIsAclRoot(id)) {
+            updatePermissions(request, sid, permissions);
+            return;
+        }
+        checkAccess(id, request);
+        val parentId = getParentId(request);
+        val parentType = getParentAclType();
+        val type = chooseAclType(id);
+        getAdminService().updatePermissions(sid, type, id, parentType, parentId, permissions);
     }
 
     @SneakyThrows
     @PutMapping("acl/{sid}")
-    default void updatePermissions(@PathVariable String sid, @RequestBody AccessDto accessDto) {
-        checkAccess(0L);
-        getAdminService().updatePermissions(sid, getAclType(), 0L, accessDto);
+    default void updatePermissions(HttpServletRequest request, @PathVariable String sid, @RequestBody AccessDto permissions) {
+        checkAccess(0L, request);
+        val parentType = getParentAclType();
+        val parentId = getParentId(request);
+        if (parentId > 0) {
+            getAdminService().updatePermissions(sid, parentType, parentId, parentType, 0L, permissions);
+            return;
+        }
+        getAdminService().updatePermissions(sid, parentType, 0L, permissions);
+    }
+
+    default boolean targetIsAclRoot(Long id) {
+        return id == 0L;
     }
 
     @SneakyThrows
     @GetMapping("{id}/acl/{sid}")
-    default SidAccessDto getPermissions(@PathVariable Long id, @PathVariable String sid) {
-        checkAccess(id);
-        val aces = getAdminService().getAces(getAclType(), id);
+    default SidAccessDto getPermissions(@PathVariable Long id, @PathVariable String sid, HttpServletRequest request) {
+        checkAccess(id, request);
+
+        val targetType = chooseAclType(id);
+        val targetId = chooseAclId(id, request);
+        val aces = getAdminService().getAces(targetType, targetId);
 
         Sid sidObj = new PrincipalSid(sid);
         AccessDto accessDto = aces.getOrDefault(sidObj, null);
+        Boolean isPrincipal = true;
 
         if (accessDto == null) {
             sidObj = new GrantedAuthoritySid(sid);
-            accessDto = aces.getOrDefault(sidObj, null);
+            accessDto = aces.getOrDefault(sidObj, new AccessDto());
+            isPrincipal = null;
         }
 
         return SidAccessDto.builder()
                 .sid(sid)
-                .principal(sidObj instanceof PrincipalSid ? true : null)
+                .principal(isPrincipal)
                 .create(accessDto.isCreate() ? true : null)
                 .read(accessDto.isRead() ? true : null)
                 .write(accessDto.isWrite() ? true : null)
@@ -137,8 +194,8 @@ public interface AclController {
 
     @SneakyThrows
     @GetMapping("acl/{sid}")
-    default SidAccessDto getPermissions(@PathVariable String sid) {
-        return getPermissions(0L, sid);
+    default SidAccessDto getPermissions(@PathVariable String sid, HttpServletRequest request) {
+        return getPermissions(0L, sid, request);
     }
 
 }
