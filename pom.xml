@@ -67,4 +67,22 @@
         <finalName>${project.artifactId}</finalName>
     </build>
 
+    <repositories>
+        <repository>
+            <id>nexus-public</id>
+            <url>http://10.10.4.8:8082/repository/maven-public/</url>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://10.10.4.8:8082/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus-snapshots</id>
+            <url>http://10.10.4.8:8082/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 </project>
