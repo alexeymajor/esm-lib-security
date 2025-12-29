@@ -330,7 +330,8 @@ public class AdminService {
     public void updateHierarchy() {
         try {
             authServiceUser();
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("auth service user exception");
         }
 
         val aclTypes = typeAlias.stream()
