@@ -11,6 +11,8 @@ import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import ru.avm.lib.common.dto.CompanyDto;
 import ru.avm.lib.security.acl.admin.dto.AccessDto;
 import ru.avm.lib.security.acl.admin.dto.SidAccessDto;
@@ -31,8 +33,8 @@ public interface AclController {
         return getAclType();
     }
 
-    default Long chooseAclId(Long id, HttpServletRequest request) {
-        if (targetIsAclRoot(id)) return getParentId(request);
+    default Long chooseAclId(Long id) {
+        if (targetIsAclRoot(id)) return getParentId();
         return id;
     }
 
@@ -45,7 +47,8 @@ public interface AclController {
     }
 
     @SneakyThrows
-    default Long getParentId(HttpServletRequest request) {
+    default Long getParentId() {
+        val request = getCurrentRequest();
         if (getParentParameterIndex() == null) return 0L;
         val parts = request.getServletPath().split("/");
         val parentParameterValue = parts[getParentParameterIndex()];
@@ -75,7 +78,7 @@ public interface AclController {
         adminService.registerAlias(types);
     }
 
-    private void checkAccess(Long id, HttpServletRequest request) {
+    private void checkAccess(Long id) {
         val authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated())
@@ -86,7 +89,7 @@ public interface AclController {
 
         if (isAdmin) return;
 
-        val targetId = chooseAclId(id, request);
+        val targetId = chooseAclId(id);
         val targetType = chooseAclType(id);
 
         val aclAccess = getAdminService().getPermissionEvaluator()
@@ -95,27 +98,32 @@ public interface AclController {
 
     }
 
+    default HttpServletRequest getCurrentRequest() {
+        val attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+        return attributes.getRequest();
+    }
+
     @GetMapping("permissions")
-    default AccessDto permissions(HttpServletRequest request) {
+    default AccessDto permissions() {
         val parentType = getParentAclType();
-        val parentId = getParentId(request);
+        val parentId = getParentId();
         return getAdminService().getPermissions(parentType, parentId);
     }
 
     @GetMapping("{id}/permissions")
-    default AccessDto permissions(@PathVariable Long id, HttpServletRequest request) {
+    default AccessDto permissions(@PathVariable Long id) {
         if (id == 0L) {
-            return permissions(request);
+            return permissions();
         }
         return getAdminService().getPermissions(chooseAclType(id), id);
     }
 
     @SneakyThrows
     @GetMapping("{id}/acl")
-    default List<SidAccessDto> aclList(@PathVariable Long id, HttpServletRequest request) {
-        checkAccess(id, request);
+    default List<SidAccessDto> aclList(@PathVariable Long id) {
+        checkAccess(id);
         try {
-            val targetId = chooseAclId(id, request);
+            val targetId = chooseAclId(id);
             val targetType = chooseAclType(id);
             val acesMap = getAdminService().getAces(targetType, targetId);
             return AdminUtils.convert(acesMap);
@@ -126,19 +134,19 @@ public interface AclController {
 
     @SneakyThrows
     @GetMapping("acl")
-    default List<SidAccessDto> aclList(HttpServletRequest request) {
-        return aclList(0L, request);
+    default List<SidAccessDto> aclList() {
+        return aclList(0L);
     }
 
     @SneakyThrows
     @PutMapping("{id}/acl/{sid}")
-    default void updatePermissions(HttpServletRequest request, @PathVariable Long id, @PathVariable String sid, @RequestBody AccessDto permissions) {
+    default void updatePermissions(@PathVariable Long id, @PathVariable String sid, @RequestBody AccessDto permissions) {
         if (targetIsAclRoot(id)) {
-            updatePermissions(request, sid, permissions);
+            updatePermissions(sid, permissions);
             return;
         }
-        checkAccess(id, request);
-        val parentId = getParentId(request);
+        checkAccess(id);
+        val parentId = getParentId();
         val parentType = getParentAclType();
         val type = chooseAclType(id);
         getAdminService().updatePermissions(sid, type, id, parentType, parentId, permissions);
@@ -146,10 +154,10 @@ public interface AclController {
 
     @SneakyThrows
     @PutMapping("acl/{sid}")
-    default void updatePermissions(HttpServletRequest request, @PathVariable String sid, @RequestBody AccessDto permissions) {
-        checkAccess(0L, request);
+    default void updatePermissions(@PathVariable String sid, @RequestBody AccessDto permissions) {
+        checkAccess(0L);
         val parentType = getParentAclType();
-        val parentId = getParentId(request);
+        val parentId = getParentId();
         if (parentId > 0) {
             getAdminService().updatePermissions(sid, parentType, parentId, parentType, 0L, permissions);
             return;
@@ -163,11 +171,11 @@ public interface AclController {
 
     @SneakyThrows
     @GetMapping("{id}/acl/{sid}")
-    default SidAccessDto getPermissions(@PathVariable Long id, @PathVariable String sid, HttpServletRequest request) {
-        checkAccess(id, request);
+    default SidAccessDto getPermissions(@PathVariable Long id, @PathVariable String sid) {
+        checkAccess(id);
 
         val targetType = chooseAclType(id);
-        val targetId = chooseAclId(id, request);
+        val targetId = chooseAclId(id);
         val aces = getAdminService().getAces(targetType, targetId);
 
         Sid sidObj = new PrincipalSid(sid);
@@ -194,8 +202,8 @@ public interface AclController {
 
     @SneakyThrows
     @GetMapping("acl/{sid}")
-    default SidAccessDto getPermissions(@PathVariable String sid, HttpServletRequest request) {
-        return getPermissions(0L, sid, request);
+    default SidAccessDto getPermissions(@PathVariable String sid) {
+        return getPermissions(0L, sid);
     }
 
 }
