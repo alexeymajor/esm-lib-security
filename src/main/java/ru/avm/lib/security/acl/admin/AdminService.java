@@ -22,6 +22,7 @@ import ru.avm.lib.security.acl.admin.dto.AccessDto;
 import ru.avm.lib.security.acl.admin.dto.AclRoot;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -328,6 +329,8 @@ public class AdminService {
 
     @Transactional(noRollbackFor = Exception.class)
     public void updateHierarchy() {
+        val start = System.currentTimeMillis();
+        log.warn("update cmp hierarchy started at {}", LocalDateTime.now());
         try {
             authServiceUser();
         } catch (Exception e) {
@@ -349,6 +352,9 @@ public class AdminService {
                     val parentId = Optional.ofNullable(company.parentId()).orElse(0L);
                     updateParent(aclType.getAclHierarchyType(), company.id(), parentId);
                 }));
+        val done = System.currentTimeMillis() - start;
+        log.warn("update cmp hierarchy done at {} in {} sec", LocalDateTime.now(), done / 1000);
+
     }
 
 }

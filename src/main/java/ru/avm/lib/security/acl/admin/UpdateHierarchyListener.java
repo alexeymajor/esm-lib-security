@@ -10,6 +10,9 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import ru.avm.lib.common.dto.CompanyDto;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @RequiredArgsConstructor
 
 @Slf4j
@@ -17,6 +20,7 @@ import ru.avm.lib.common.dto.CompanyDto;
 public class UpdateHierarchyListener {
 
     private final AdminService adminService;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @RabbitListener(
             bindings = @QueueBinding(
@@ -26,14 +30,16 @@ public class UpdateHierarchyListener {
             errorHandler = "rabbitErrorHandler"
     )
     public void updateCmpHierarchyListener(@SuppressWarnings("unused") CompanyDto dto) {
-        try {
-            log.warn("update cmp hierarchy");
-            adminService.updateHierarchy();
-            log.warn("update cmp hierarchy done");
-        } catch (Exception e) {
-            log.error("error update cmp hierarchy", e);
-            throw new RuntimeException(e);
-        }
+
+        executor.submit(() -> {
+            try {
+                adminService.updateHierarchy();
+            } catch (Exception e) {
+                log.error("error update cmp hierarchy", e);
+                throw e;
+            }
+        });
+
     }
 
 
