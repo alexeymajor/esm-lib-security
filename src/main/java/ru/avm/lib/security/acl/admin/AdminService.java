@@ -326,7 +326,7 @@ public class AdminService {
         aclService.updateAcl(acl);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public void updateHierarchy() {
         try {
             authServiceUser();

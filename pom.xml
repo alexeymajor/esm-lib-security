@@ -9,7 +9,7 @@
         <relativePath/>
     </parent>
     <artifactId>security</artifactId>
-    <version>1.18.1</version>
+    <version>1.18.2</version>
     <name>security</name>
     <description>security</description>
     <dependencies>
