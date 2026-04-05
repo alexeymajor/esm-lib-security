@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
@@ -103,9 +102,8 @@ public class SecurityAclConfig {
 
     @Bean
     public AclCache aclCache() {
-        Cache springCache = cacheManager().getCache(aclCacheName());
-        assert springCache != null;
-        return new SpringCacheBasedAclCache(springCache, permissionGrantingStrategy(), aclAuthorizationStrategy());
+        val cache = cacheManager().getCache(aclCacheName());
+        return new SpringCacheBasedAclCache(cache, permissionGrantingStrategy(), aclAuthorizationStrategy());
     }
 
     @Bean
