@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.ObjectIdentityImpl;
@@ -37,8 +36,6 @@ import static ru.avm.lib.security.acl.SpecialPermission.SPECIAL;
 public class AdminService {
 
     private final MutableAclService aclService;
-
-    private final RabbitTemplate rabbitTemplate;
 
     private final CompaniesProxy companiesProxy;
     private final AuthoritiesProxy authoritiesProxy;
@@ -120,7 +117,7 @@ public class AdminService {
         }
     }
 
-    private MutableAcl makeAcl(String type, Serializable entity, String parentType, Long parentId) {
+    private MutableAcl makeAcl(String type, Serializable entity, String parentType, Serializable parentId) {
         val identity = new ObjectIdentityImpl(type, entity);
 
         MutableAcl acl;
@@ -138,6 +135,7 @@ public class AdminService {
             parentAcl = aclService.createAcl(parentIdentity);
         }
         acl.setParent(parentAcl);
+        acl.setEntriesInheriting(true);
 
         return acl;
     }
@@ -181,6 +179,7 @@ public class AdminService {
         val parent = aclService.readAclById(new ObjectIdentityImpl(entity.getClass().getName(), 0L));
         if (acl.getParentAcl() == null || !acl.getParentAcl().equals(parent)) {
             acl.setParent(parent);
+            acl.setEntriesInheriting(true);
             aclService.updateAcl(acl);
         }
     }
@@ -191,6 +190,7 @@ public class AdminService {
         val parent = aclService.readAclById(new ObjectIdentityImpl(parentEntity));
         if (acl.getParentAcl() == null || !acl.getParentAcl().equals(parent)) {
             acl.setParent(parent);
+            acl.setEntriesInheriting(true);
         }
         aclConsumer.accept(acl);
         aclService.updateAcl(acl);
@@ -203,6 +203,7 @@ public class AdminService {
             val parent = aclService.readAclById(new ObjectIdentityImpl(parentEntity));
             if (acl.getParentAcl() == null || !acl.getParentAcl().equals(parent)) {
                 acl.setParent(parent);
+                acl.setEntriesInheriting(true);
                 aclService.updateAcl(acl);
             }
         }
@@ -228,22 +229,28 @@ public class AdminService {
 
             val permission = ace.getPermission();
             if (READ.equals(permission)) {
-                if (!permissions.isRead()) acl.deleteAce(i);
+                if (!permissions.isRead())
+                    acl.deleteAce(i);
                 else res.setRead(true);
             } else if (CREATE.equals(permission)) {
-                if (!permissions.isCreate()) acl.deleteAce(i);
+                if (!permissions.isCreate())
+                    acl.deleteAce(i);
                 else res.setCreate(true);
             } else if (WRITE.equals(permission)) {
-                if (!permissions.isWrite()) acl.deleteAce(i);
+                if (!permissions.isWrite())
+                    acl.deleteAce(i);
                 else res.setWrite(true);
             } else if (DELETE.equals(permission)) {
-                if (!permissions.isDelete()) acl.deleteAce(i);
+                if (!permissions.isDelete())
+                    acl.deleteAce(i);
                 else res.setDelete(true);
             } else if (SPECIAL.equals(permission)) {
-                if (!permissions.isSpecial()) acl.deleteAce(i);
+                if (!permissions.isSpecial())
+                    acl.deleteAce(i);
                 else res.setSpecial(true);
             } else if (ADMINISTRATION.equals(permission)) {
-                if (!permissions.isAdministration()) acl.deleteAce(i);
+                if (!permissions.isAdministration())
+                    acl.deleteAce(i);
                 else res.setAdministration(true);
             }
         }
@@ -269,7 +276,6 @@ public class AdminService {
 
         aclService.updateAcl(acl);
 
-        rabbitTemplate.convertAndSend("sales.admin." + type + "." + id + "." + sid, permissions);
     }
 
     private void fill(Acl acl, Permission permission, List<Sid> list) {
@@ -324,6 +330,7 @@ public class AdminService {
         val parent = getAclNoParentCreate(type, parentId);
 
         acl.setParent(parent);
+        acl.setEntriesInheriting(true);
         aclService.updateAcl(acl);
     }
 

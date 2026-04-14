@@ -2,7 +2,6 @@ package ru.avm.lib.security.acl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -39,7 +38,6 @@ public class SecurityAclConfig {
     private final CompaniesProxy companiesProxy;
 
     private final AuthoritiesProxy authoritiesProxy;
-    private final RabbitTemplate rabbitTemplate;
     private final DataSource dataSource;
     private final AuthUserDto serviceUser;
     private static final String ACL_CACHE_NAME_SUFFIX = "AclCache";
@@ -52,7 +50,6 @@ public class SecurityAclConfig {
     public AdminService adminService(JdbcMutableAclService aclService, PermissionEvaluator permissionEvaluator) {
         return new AdminService(
                 aclService,
-                rabbitTemplate,
                 companiesProxy,
                 authoritiesProxy,
                 serviceUser.toBuilder().authority("ROLE_ADMIN").build(),
